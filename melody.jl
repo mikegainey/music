@@ -43,13 +43,13 @@ function melody(nn=4) # nn = number of notes
     return notes
 end
 
-function rhythm(nn=6, duration=16) # duration given in number of 16th notes
-    durations = repeat([1], nn)
-    while sum(durations) < duration
-        note = rand(1:nn)
-        durations[note] += 1
+function rhythm(notes=6, duration=16) # duration given in number of 16th notes
+    rhythm = fill(1, notes)
+    while sum(rhythm) < duration
+        note = rand(1:notes)
+        rhythm[note] += 1
     end
-    return durations
+    return rhythm
 end
 
 
