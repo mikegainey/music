@@ -1,0 +1,9 @@
+** brainstorm
+
+Computer music composition.  Generate rhythms.  Generate chord progressions.  Generate melodies.  Generate counter-melodies.
+Put it together in a sensible form.
+
+Music representation in data structures.  Note objects.  Section objects with meter information -- what gets the beat
+and how it's divided.
+
+Making rhythms.  Need to know the smallest division of the beat.
