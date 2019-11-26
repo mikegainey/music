@@ -87,25 +87,46 @@ function rhythmly(lod::Array{Int}, groupsize::Int) # lod = list of durations
 end
 
 
-function rhythmly(lod, groupsize, bd=0, output="")
+# function rhythmly(lod, groupsize, group=0, output="")
+#     if length(lod) == 0
+#         return output
+#     end
+
+#     if lod[1] + group < groupsize # if the note will fit in the beat ...
+#         rhythmly(lod[2:end], groupsize, group+lod[1], string(output, lod[1], ' '))
+#     elseif lod[1] + group == groupsize # if the note completes the beat exactly ...
+#         rhythmly(lod[2:end], groupsize, 0, string(output, lod[1], ' '))
+#     elseif lod[1] + group > groupsize # if the note won't fit in the current beat ...
+#         leftnote = groupsize - group
+#         rightnote = lod[1] - leftnote
+#         group = rightnote
+#         rhythmly(lod[2:end], groupsize, group, string(output, leftnote, "~ ", rightnote, ' '))
+#     else
+#         error("The if-elseif clause didn't catch all cases!")
+#     end
+# end
+
+
+
+function rhythmly(lod, rvalue, groupsize, group=0, output=[])
     if length(lod) == 0
         return output
     end
 
-    if lod[1] + bd < groupsize # if the note will fit in the beat ...
-        rhythmly(lod[2:end], groupsize, bd+lod[1], string(output, lod[1], ' '))
-    elseif lod[1] + bd == groupsize # if the note completes the beat exactly ...
+    if lod[1] + group < groupsize # if the note will fit in the beat ...
+        note = Note("c", "'", )
+        rhythmly(lod[2:end], groupsize, group+lod[1], string(output, lod[1], ' '))
+    elseif lod[1] + group == groupsize # if the note completes the beat exactly ...
         rhythmly(lod[2:end], groupsize, 0, string(output, lod[1], ' '))
-    elseif lod[1] + bd > groupsize # if the note won't fit in the current beat ...
-        leftnote = groupsize - bd
+    elseif lod[1] + group > groupsize # if the note won't fit in the current beat ...
+        leftnote = groupsize - group
         rightnote = lod[1] - leftnote
-        bd = rightnote
-        rhythmly(lod[2:end], groupsize, bd, string(output, leftnote, "~ ", rightnote, ' '))
+        group = rightnote
+        rhythmly(lod[2:end], groupsize, group, string(output, leftnote, "~ ", rightnote, ' '))
     else
         error("The if-elseif clause didn't catch all cases!")
     end
 end
-
 
 
 
