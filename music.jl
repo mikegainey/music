@@ -3,9 +3,10 @@ mutable struct Note
     octave :: String
     duration :: String
     tieflag :: Bool
-    function Note(p="c", o="'", d="4"; tie=false)
-        new(p, o, d; tie)
-    end
+end
+
+function Note(p="c", o="''", d="4"; tie=false)
+    Note(p, o, d, tie)
 end
 
 function Base.show(io::IO, note::Note)
@@ -13,7 +14,7 @@ function Base.show(io::IO, note::Note)
 end
 
 """
-makerhythm(notes::Int=6, totalduration::Int=16)
+makerhythm(notes::Int=4, totalduration::Int=8)
 
 Returns a list of randomly generated integers representing durations given in subdivisions of the beat.
 
@@ -29,6 +30,11 @@ function makerhythm(notes::Int=4, totalduration::Int=8)
     return rhythm
 end
 
+"""
+writely(filename::String, notes::Array{Note})
+
+Given a filename and list of Note objects, write the corresponding lilypond file.
+"""
 function writely(filename::String, notes::Array{Note})
     fout = open(filename, "w")
     println(fout, raw"\version \"2.18.2\"")
@@ -40,7 +46,7 @@ function writely(filename::String, notes::Array{Note})
     end
 
     # close the file
-    println(fout, "}")
+    println(fout, "\n}")
     close(fout)
 end
 
@@ -57,77 +63,59 @@ end
 
 # writely("melody.ly", melody(8))
 
+d2lyd = Dict(1 => "16",
+             2 => "8",
+             3 => "8.",
+             4 => "4",
+             6 => "4.",
+             7 => "4..",
+             8 => "2"
+             )
+
 """
-given: list of durations, subdivision of the beat, groupsize
-return: a list of Note on pitch c'' in the given rhythm
-limitations: no tuple capability
- """
-function rhythmly(lod::Array{Int}, groupsize::Int) # lod = list of durations
-    output = []
-    group = 0
-    while length(lod) > 0
-        duration = popfirst!(lod)
-        if duration + group < groupsize
-            push!(output, Note("c", "'", string(duration)))
-            group += duration
-        elseif duration + group == groupsize
-            push!(output, Note("c", "'", string(duration)))
-            group = 0
-        elseif duration + group > groupsize
-            leftnote = groupsize - group
-            rightnote = duration - leftnote
-            group = rightnote
-            push!(output, Note("c", "'", string(leftnote), tie=true))
-            push!(output, Note("c", "'", string(rightnote)))
-        else
-            error("The if-elseif clause didn't catch all cases!")
-        end
-    end
-    return output
-end
+rhythmly(lod, groupsize, group=0, output=[])
 
-
-# function rhythmly(lod, groupsize, group=0, output="")
-#     if length(lod) == 0
-#         return output
-#     end
-
-#     if lod[1] + group < groupsize # if the note will fit in the beat ...
-#         rhythmly(lod[2:end], groupsize, group+lod[1], string(output, lod[1], ' '))
-#     elseif lod[1] + group == groupsize # if the note completes the beat exactly ...
-#         rhythmly(lod[2:end], groupsize, 0, string(output, lod[1], ' '))
-#     elseif lod[1] + group > groupsize # if the note won't fit in the current beat ...
-#         leftnote = groupsize - group
-#         rightnote = lod[1] - leftnote
-#         group = rightnote
-#         rhythmly(lod[2:end], groupsize, group, string(output, leftnote, "~ ", rightnote, ' '))
-#     else
-#         error("The if-elseif clause didn't catch all cases!")
-#     end
-# end
-
-
-
-function rhythmly(lod, rvalue, groupsize, group=0, output=[])
-    if length(lod) == 0
+Given a list of integer durations, (output of makerhythm), like [6, 3, 4, 3]
+and a groupsize, for now limited to 4
+Returns a list of Notes with the specified rhythm on the pitch c''
+"""
+function rhythmly(lod::Array{Int}, groupsize::Int, group::Int=0, output::Array{Note}=Note[])
+    @show lod, groupsize, group, output
+    if length(lod) == 0 # the base case
         return output
     end
 
-    if lod[1] + group < groupsize # if the note will fit in the beat ...
-        note = Note("c", "'", )
-        rhythmly(lod[2:end], groupsize, group+lod[1], string(output, lod[1], ' '))
-    elseif lod[1] + group == groupsize # if the note completes the beat exactly ...
-        rhythmly(lod[2:end], groupsize, 0, string(output, lod[1], ' '))
-    elseif lod[1] + group > groupsize # if the note won't fit in the current beat ...
-        leftnote = groupsize - group
-        rightnote = lod[1] - leftnote
-        group = rightnote
-        rhythmly(lod[2:end], groupsize, group, string(output, leftnote, "~ ", rightnote, ' '))
+    if groupsize > 8; groupsize = 8; end # max groupsize for now
+    duration = lod[1] # the head of the list
+    tail = lod[2:end] # the tail of the list
+
+    if duration + group ≤ groupsize # if the note will fit in the beat ...
+        if duration == 5 # because there is no one note of this duration; needs two notes with a tie
+            note1 = Note("c", "''", 4, tie=true)
+            note2 = Note("c", "''", 1)
+            rhythmly(tail, groupsize, (group+duration) % groupsize, vcat(output, note1, note2))
+        else
+            note = Note("c", "''", d2lyd[duration])
+            rhythmly(tail, groupsize, (group+duration) % groupsize, vcat(output, note))
+        end
+    elseif duration + group > groupsize # if the note won't fit in the current beat ...
+        lnote = groupsize - group
+        leftnote = Note("c", "''", d2lyd[lnote], tie=true)
+        rnote = duration - lnote
+        rightnote = Note("c", "''", d2lyd[rnote])
+        group = rnote % groupsize
+        rhythmly(tail, groupsize, group, vcat(output, leftnote, rightnote))
     else
         error("The if-elseif clause didn't catch all cases!")
     end
 end
 
-
-
-
+function test()
+    durations = makerhythm(8, 16)
+    @show durations
+    notes = rhythmly(durations, 4)
+    @show notes
+    filename = "testrhythm.ly"
+    writely(filename, notes)
+    println(filename, " should be available for lilypond compilation.")
+end
