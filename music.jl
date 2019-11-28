@@ -39,6 +39,8 @@ function writely(filename::String, notes; time="4/4")
     fout = open(filename, "w")
     println(fout, raw"\version \"2.18.2\"")
     println(fout, "{")
+    println(fout, raw"\language \"english\"")
+    println(fout, raw"\clef \"treble\"")
     println(fout, raw"\time ", time)
 
     for note in notes
@@ -64,6 +66,7 @@ end
 
 # writely("melody.ly", melody(8))
 
+# needed for rhythmly
 d2lyd = Dict(1 => "16",
              2 => "8",
              3 => "8.",
@@ -79,42 +82,8 @@ rhythmly(lod, groupsize, group=0, output=[])
 Given a list of integer durations, (output of makerhythm), like [6, 3, 4, 3]
 and a groupsize, for now limited to 4
 Returns a list of Notes with the specified rhythm on the pitch c''
-
-error: rhythmly([1,2,6,1,1,3,1,1], 4) # needs three notes tied together; how do I fix this?
 """
-function rhythmly(lod::Array{Int}, groupsize::Int, remaining::Int=0, output::Array{Note}=Note[]) :: Array{Note}
-    @show lod, groupsize, remaining, output
-    if length(lod) == 0 # the base case
-        return output
-    end
-
-    if groupsize > 8; groupsize = 8; end # max groupsize for now
-    duration = lod[1] # the head of the list
-    tail = lod[2:end] # the tail of the list
-
-    if duration + remaining ≤ groupsize # if the note will fit in the beat ...
-        if duration == 5 # because there is no one note of this duration, use two notes with a tie
-            note1 = Note("c", "''", 4, tie=true)
-            note2 = Note("c", "''", 1)
-            rhythmly(tail, groupsize, (remaining+duration) % groupsize, vcat(output, note1, note2))
-        else
-            note = Note("c", "''", d2lyd[duration])
-            rhythmly(tail, groupsize, (remaining+duration) % groupsize, vcat(output, note))
-        end
-    elseif duration + remaining > groupsize # if the note won't fit in the current beat ...
-        n1d = groupsize - remaining
-        note1 = Note("c", "''", d2lyd[n1d], tie=true)
-        n2d = duration - n1d
-        note2 = Note("c", "''", d2lyd[n2d])
-        remaining = n2d % groupsize
-        rhythmly(tail, groupsize, remaining, vcat(output, note1, note2))
-    else
-        error("The if-elseif clause didn't catch all cases!")
-    end
-end
-
-
-function rhythmly2(lod, groupsize)
+function rhythmly(lod, groupsize)
     @assert groupsize ≤ 4
     output = []
     remaining = 0
@@ -138,7 +107,7 @@ function test(n)
     music = []
     for measure in 1:n
         ds = makerhythm(8, 16)
-        ns = rhythmly2(ds, 4)
+        ns = rhythmly(ds, 4)
         append!(music, ns)
     end
     filename = "testrhythm.ly"
